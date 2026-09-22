@@ -47,6 +47,11 @@ L'image était configurée en NODE_ENV=development, alors qu'elle est destinée 
 
 Le conteneur tournait avec l'utilisateur root, ce qui donne des privilèges système complets à l'application à l'intérieur du conteneur, un risque de sécurité inutile pour une simple application web. L'image node:alpine fournit un utilisateur non privilégié prêt à l'emploi (node). Correction : USER node, placé juste avant CMD pour que toutes les opérations nécessitant des droits élevés (installation de dépendances, copie de fichiers) restent effectuées avant le changement d'utilisateur.
 
+## Changement v9:
+
+Remplacement de npm install par npm ci --omit=dev
+Le Dockerfile utilisait npm install, une commande pensée pour le développement local : elle peut modifier package-lock.json, recalculer des versions, et n'est pas garantie de produire exactement le même résultat d'une exécution à l'autre. Pour un build automatisé et reproductible comme celui d'une image Docker, npm ci est plus adapté : elle installe strictement les versions figées dans package-lock.json, sans jamais le modifier, et repart toujours d'un node_modules propre. Elle est aussi généralement plus rapide dans ce contexte. L'option --omit=dev est conservée pour continuer à exclure les dépendances de développement (nodemon) de l'image finale.
+
 
 ## Tableau de comparaison des versions:
 IMAGE  | Modification apportée | DISK USAGE | CONTENT SIZE
@@ -58,5 +63,6 @@ V4 | suppression de RUN npm run build| 222MB | 54MB
 V5 | retiré "mongodb":"^6.19.0" package et retiré le devDependancies de l'instalation | 203MB  | 50MB
 V6 | suppression des port inutile | 203MB  | 50MB
 V7 | ENV NODE_ENV=production | 203MB  | 50MB
-Vo | USER=node | 203MB  | 50MB
+V8 | USER=node | 203MB  | 50MB
+V9 | RUN npm ci --omit=dev | 203MB  | 50MB
 
