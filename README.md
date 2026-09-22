@@ -36,7 +36,12 @@ mongodb retiré de package.json (dépendance inutilisée)
 npm install --omit=dev (exclut nodemon ( c'est un outil de développement légitime, utile quand on code en local avec le script npm run dev)
 
 ## Changement V6:
+
 L'application n'écoute que sur un seul port (process.env.PORT || 3000, défini dans server.js). Le Dockerfile déclarait à tort trois ports (3000 4000 5000) Correction : EXPOSE 3000 uniquement.
+
+## Changement V7:
+
+L'image était configurée en NODE_ENV=development, alors qu'elle est destinée à être déployée. Ce mode désactive plusieurs optimisations internes d'Express et de Node.js, ce qui impacte à la fois les performances et la sécurité en production. Correction : NODE_ENV=production.
 
 
 ## Tableau de comparaison des versions:
@@ -48,4 +53,5 @@ V3 | dépendance fantôme + FROM node:20-alpine| 222MB | 54MB
 V4 | suppression de RUN npm run build| 222MB | 54MB
 V5 | retiré "mongodb":"^6.19.0" package et retiré le devDependancies de l'instalation | 203MB  | 50MB
 V6 | suppression des port inutile | 203MB  | 50MB
+V7 | ENV NODE_ENV=production | 203MB  | 50MB
 
