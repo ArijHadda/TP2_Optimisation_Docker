@@ -57,6 +57,10 @@ Le Dockerfile utilisait `npm install`, une commande pensée pour le développeme
 Nettoyage du cache npm dans la même couche que l'installation.
 `npm ci` génère un cache local des paquets téléchargés, utile uniquement pour de futures installations sur la même machine — inutile une fois l'image construite. Pour que ce nettoyage réduise réellement la taille de l'image, il doit être exécuté dans la même instruction `RUN` que l'installation (`RUN npm ci --omit=dev && npm cache clean --force`), car chaque `RUN` Docker crée une couche persistante : un nettoyage effectué dans une couche séparée ne libère pas l'espace occupé par la couche précédente.
 
+## Changement V11:
+
+Optimisation de la route `/big` dans `server.js`. La route utilisait `fs.readFileSync`, une lecture synchrone qui charge tout le fichier en mémoire et bloque le thread principal de Node.js pendant toute la durée de la lecture, empêchant le serveur de traiter d'autres requêtes en parallèle. Elle était de plus précédée d'un appel `fs.existsSync` séparé, créant une brève fenêtre de "race condition" entre la vérification et la lecture. Correction : utilisation de `fs.createReadStream` avec `.pipe(res)`, qui envoie le fichier progressivement au client sans bloquer le serveur, et gère l'absence du fichier via l'événement `error` du flux plutôt que par une vérification préalable.
+
 ## Tableau de comparaison des versions :
 
 | IMAGE | Modification apportée | DISK USAGE | CONTENT SIZE |
@@ -72,3 +76,40 @@ Nettoyage du cache npm dans la même couche que l'installation.
 | V8 | `USER node` | 203MB | 50MB |
 | V9 | `RUN npm ci --omit=dev` | 203MB | 50MB |
 | V10 | Nettoyage du cache | 199MB | 49.1MB |
+| V11 | Optimisation `server.js` (streaming sur `/big`) | 199MB | 49.1MB |
+
+
+## Comparaison de performance — temps de build
+
+Le temps de build a été relevé pour chaque itération à partir des logs `docker build` (ligne `[+] Building X.Xs`).
+
+| Image | Temps de build | Observation |
+|---|---|---|
+| app-v1 | 15.0s | Pas encore de cache optimisé (`COPY . /app` suivi de `npm install`) |
+| app-v2 (1er build) | 14.2s | Séparation `package.json` mise en place |
+| app-v2 (rebuild) | 9.5s | Cache actif sur `npm install` |
+| app-v3 | 3.8s (après correction de l'erreur `apt-get`) | Passage à Alpine, cache réactivé |
+| app-v4 | 1.4s | Tout en cache sauf `COPY . .` |
+| app-v5 | 4.7s | `npm install --omit=dev` = nouvelle commande, cache invalidé |
+| app-v6 | 2.5s | Tout en cache |
+| app-v7 | 3.0s | Tout en cache |
+| app-v8 | 1.4s | Tout en cache |
+| app-v9 | 4.7s | `npm ci` = nouvelle commande, cache invalidé |
+| app-v10 | 4.7s | Ajout de `npm cache clean`, cache invalidé |
+| app-v11 | 1.8s | Tout en cache, seul `server.js` a changé |
+
+**Observation** : le temps de build n'est pas uniformément décroissant au fil des versions, ce qui est normal et attendu. Chaque fois qu'une instruction `RUN` change de contenu (nouvelle option, nouvelle commande npm), le cache Docker de cette couche est invalidé et doit être reconstruit une fois, avant de redevenir instantané aux builds suivants. Les pics ponctuels (V5, V9, V10) correspondent exactement aux versions où l'instruction `npm` a été modifiée.
+
+## Comparaison de performance — temps de réponse HTTP
+
+Test effectué avec `curl` sur la route `/`, en comparant `app-v0` (port 3000) et `app-v11` (port 3000, conteneur `test-perf`) :
+
+curl -w "\nTemps total: %{time_total}s\n" -o /dev/null -s http://localhost:3000/
+| Image | Temps de réponse (`/`) |
+|---|---|
+| app-v0 | 0.040s |
+| app-v11 | 0.033s |
+
+Sur la route `/`, la différence est négligeable, ce qui est cohérent : cette route ne fait aucune opération sur fichier. L'impact réel de l'optimisation du streaming (`fs.createReadStream` vs `fs.readFileSync`) se manifeste sur la route `/big`, en particulier avec un fichier volumineux.
+
+
