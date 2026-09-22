@@ -19,13 +19,14 @@ res.send('Hello world — serveur volontairement non optimisé mais fonctionnel'
 
 
 app.get('/big', (req, res) => {
-const filePath = path.join(__dirname, 'maybe-big-file.txt');
-if (fs.existsSync(filePath)) {
-const data = fs.readFileSync(filePath, 'utf8');
-res.send(data.replace(/\n/g, '<br/>'));
-} else {
-res.send('Fichier introuvable');
-}
+  const filePath = path.join(__dirname, 'maybe-big-file.txt');
+  const stream = fs.createReadStream(filePath, 'utf8');
+
+  stream.on('error', (err) => {
+    res.status(404).send('Fichier introuvable');
+  });
+
+  stream.pipe(res);
 });
 
 
