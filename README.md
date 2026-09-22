@@ -43,6 +43,10 @@ L'application n'écoute que sur un seul port (process.env.PORT || 3000, défini 
 
 L'image était configurée en NODE_ENV=development, alors qu'elle est destinée à être déployée. Ce mode désactive plusieurs optimisations internes d'Express et de Node.js, ce qui impacte à la fois les performances et la sécurité en production. Correction : NODE_ENV=production.
 
+## Changement V8:
+
+Le conteneur tournait avec l'utilisateur root, ce qui donne des privilèges système complets à l'application à l'intérieur du conteneur, un risque de sécurité inutile pour une simple application web. L'image node:alpine fournit un utilisateur non privilégié prêt à l'emploi (node). Correction : USER node, placé juste avant CMD pour que toutes les opérations nécessitant des droits élevés (installation de dépendances, copie de fichiers) restent effectuées avant le changement d'utilisateur.
+
 
 ## Tableau de comparaison des versions:
 IMAGE  | Modification apportée | DISK USAGE | CONTENT SIZE
@@ -54,4 +58,5 @@ V4 | suppression de RUN npm run build| 222MB | 54MB
 V5 | retiré "mongodb":"^6.19.0" package et retiré le devDependancies de l'instalation | 203MB  | 50MB
 V6 | suppression des port inutile | 203MB  | 50MB
 V7 | ENV NODE_ENV=production | 203MB  | 50MB
+Vo | USER=node | 203MB  | 50MB
 
