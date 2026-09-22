@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm install --omit=dev
 COPY . .
-EXPOSE 3000 4000 5000
+EXPOSE 3000
 ENV NODE_ENV=development
 USER root
 CMD ["node", "server.js"]
