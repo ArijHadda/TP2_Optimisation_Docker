@@ -55,7 +55,7 @@ Le Dockerfile utilisait `npm install`, une commande pensée pour le développeme
 ## Changement V10 :
 
 Nettoyage du cache npm dans la même couche que l'installation.
-`npm ci` génère un cache local des paquets téléchargés, utile uniquement pour de futures installations sur la même machine — inutile une fois l'image construite. Pour que ce nettoyage réduise réellement la taille de l'image, il doit être exécuté dans la même instruction `RUN` que l'installation (`RUN npm ci --omit=dev && npm cache clean --force`), car chaque `RUN` Docker crée une couche persistante : un nettoyage effectué dans une couche séparée ne libère pas l'espace occupé par la couche précédente.
+`npm ci` génère un cache local des paquets téléchargés, utile uniquement pour de futures installations sur la même machine inutile une fois l'image construite. Pour que ce nettoyage réduise réellement la taille de l'image, il doit être exécuté dans la même instruction `RUN` que l'installation (`RUN npm ci --omit=dev && npm cache clean --force`), car chaque `RUN` Docker crée une couche persistante : un nettoyage effectué dans une couche séparée ne libère pas l'espace occupé par la couche précédente.
 
 ## Changement V11:
 
