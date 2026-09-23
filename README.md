@@ -102,14 +102,13 @@ Le temps de build a été relevé pour chaque itération à partir des logs `doc
 
 ## Comparaison de performance — temps de réponse HTTP
 
-Test effectué avec `curl` sur la route `/`, en comparant `app-v0` (port 3000) et `app-v11` (port 3000, conteneur `test-perf`) :
+Test effectué avec `curl` sur la route `/big`, en comparant `app-v0` (port 3000) et `app-v11` (port 3000, conteneur `test-perf`) :
 
-curl -w "\nTemps total: %{time_total}s\n" -o /dev/null -s http://localhost:3000/
-| Image | Temps de réponse (`/`) |
+curl -w "\nTemps total: %{time_total}s\n" -o /dev/null -s http://localhost:3000/big
+| Image | Temps de réponse (`/big`) |
 |---|---|
-| app-v0 | 0.040s |
-| app-v11 | 0.033s |
+| app-v0 | 0.0152s |
+| app-v11 | 0.0104s |
 
-Sur la route `/`, la différence est négligeable, ce qui est cohérent : cette route ne fait aucune opération sur fichier. L'impact réel de l'optimisation du streaming (`fs.createReadStream` vs `fs.readFileSync`) se manifeste sur la route `/big`, en particulier avec un fichier volumineux.
 
 
